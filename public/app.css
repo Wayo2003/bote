@@ -1,0 +1,46 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Fraunces:opsz,wght@9..144,700;9..144,800&display=swap');
+
+:root {
+  --bg: #f6f4ee;
+  --ink: #15212f;
+  --muted: #667085;
+  --line: #e6e1d6;
+  --card: #ffffff;
+  --brand: #10b981;
+  --brand-d: #047857;
+  --brand-soft: #dcfce7;
+  --coin: #f5b301;
+  --coin-soft: #fff4cc;
+  --navy: #0f2a44;
+  --bad: #dc4c4c;
+  --bad-soft: #fde8e8;
+  --info: #2d6cdf;
+  --info-soft: #e6eefc;
+  --radius: 18px;
+  --shadow: 0 1px 2px rgba(21, 33, 47, .05), 0 10px 28px rgba(21, 33, 47, .07);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); font-family: Inter, system-ui, sans-serif; }
+a { color: inherit; }
+button { font: inherit; cursor: pointer; }
+.serif { font-family: Fraunces, Georgia, serif; letter-spacing: -.01em; }
+.logo { display: inline-flex; align-items: center; gap: 10px; font-weight: 900; font-size: 20px; text-decoration: none; letter-spacing: -.01em; }
+.logo .jar { width: 34px; height: 34px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+.btn { border: 0; border-radius: 12px; padding: 11px 16px; font-weight: 700; background: var(--navy); color: #fff; }
+.btn.green { background: var(--brand); color: #04281c; }
+.btn.ghost { background: #fff; color: var(--ink); border: 1px solid var(--line); }
+.btn:disabled { opacity: .5; cursor: default; }
+.pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 99px; font-size: 12px; font-weight: 700; }
+.pill.pending { background: var(--coin-soft); color: #8a6200; }
+.pill.partial { background: var(--info-soft); color: var(--info); }
+.pill.settled, .pill.paid { background: var(--brand-soft); color: var(--brand-d); }
+.pill.owed { background: #f3e8ff; color: #7c3aed; }
+.pill.organizer { background: #e9eef5; color: var(--navy); }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+.num { font-variant-numeric: tabular-nums; }
+input, textarea, select { font: inherit; color: var(--ink); background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; width: 100%; }
+input:focus, textarea:focus { outline: 2px solid var(--brand); outline-offset: 1px; }
+.mode { font-size: 11px; font-weight: 800; letter-spacing: .06em; padding: 4px 8px; border-radius: 6px; background: #e9eef5; color: var(--navy); }
+.mode.sandbox { background: #e6eefc; color: var(--info); }

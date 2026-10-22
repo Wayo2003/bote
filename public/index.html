@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bote · the AI treasurer for every group</title>
+<link rel="icon" href="/jar.svg">
+<link rel="stylesheet" href="/app.css">
+<style>
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 22px 20px 60px; }
+  .hero { display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; align-items: center; padding: 40px 0 30px; }
+  .hero h1 { font-size: clamp(42px, 6vw, 72px); line-height: 1; margin: 16px 0; }
+  .hero h1 em { font-style: normal; color: var(--brand-d); }
+  .hero p { font-size: 19px; color: #3f4a5a; line-height: 1.5; max-width: 560px; }
+  .form { padding: 26px; }
+  .form label { display: block; font-size: 13px; font-weight: 700; color: var(--muted); margin: 14px 0 6px; }
+  .form .row { display: grid; grid-template-columns: 1fr 110px; gap: 10px; }
+  .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 30px; }
+  .step { padding: 18px; }
+  .step .i { font-size: 26px; }
+  .step b { display: block; margin: 8px 0 4px; font-size: 17px; }
+  .step p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
+  .tag { display: inline-block; background: var(--coin-soft); color: #8a6200; font-weight: 800; font-size: 13px; padding: 5px 10px; border-radius: 99px; }
+  @media (max-width: 860px) { .hero { grid-template-columns: 1fr; } .steps { grid-template-columns: 1fr 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="logo" href="/"><img class="jar" src="/jar.svg" alt="">Bote</a>
+  <div class="hero">
+    <div>
+      <span class="tag">AI treasurer · powered by PayPal</span>
+      <h1 class="serif">Nobody should have to chase friends for <em>money</em>.</h1>
+      <p>Tell Bote the plan in your own words: the trip, the match tickets, the dinner, the club dues. It works out who owes what, collects it with PayPal, pays the vendor and gives back whatever is left. You just tap Approve.</p>
+    </div>
+    <form class="card form" id="f">
+      <div class="serif" style="font-size:24px;font-weight:800">Start a pot</div>
+      <label>What is it for?</label>
+      <input id="name" placeholder="Derby trip to Seville" required>
+      <label>Your name</label>
+      <input id="org" placeholder="Álvaro" required>
+      <div class="row">
+        <div><label>Your PayPal email <span style="font-weight:500">(optional)</span></label><input id="email" type="email" placeholder="you@example.com"></div>
+        <div><label>Currency</label><select id="cur"><option>EUR</option><option>USD</option><option>GBP</option></select></div>
+      </div>
+      <button class="btn green" style="width:100%;margin-top:18px;font-size:16px">Create the pot →</button>
+      <div class="small muted" style="margin-top:10px" id="mode"></div>
+    </form>
+  </div>
+  <div class="steps">
+    <div class="card step"><div class="i">💬</div><b>Say the plan</b><p>"We're 6 for the derby: tickets 45 € each, the bus is 300 € and Juan already paid it."</p></div>
+    <div class="card step"><div class="i">🧮</div><b>Bote does the maths</b><p>Shares, who fronted what and what the pot owes. Exact to the cent, never guessed.</p></div>
+    <div class="card step"><div class="i">💸</div><b>Collect with PayPal</b><p>Everyone gets a PayPal invoice and a one-tap pay link. Bote watches and reminds.</p></div>
+    <div class="card step"><div class="i">🤝</div><b>Pay & settle</b><p>Bote pays the vendor and gives back leftovers by refund or payout, always after your approval.</p></div>
+  </div>
+</div>
+<script>
+fetch('/api/config').then((r) => r.json()).then((c) => {
+  document.getElementById('mode').textContent = c.mode === 'sandbox' ? 'Connected to the PayPal sandbox: no real money moves.' : 'Demo mode: PayPal calls are simulated until sandbox keys are added.';
+});
+document.getElementById('f').onsubmit = async (e) => {
+  e.preventDefault();
+  const v = (id) => document.getElementById(id).value.trim();
+  const r = await fetch('/api/groups', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: v('name'), organizerName: v('org'), organizerEmail: v('email') || null, currency: v('cur') }) });
+  const j = await r.json();
+  location.href = '/g/' + j.id;
+};
+</script>
+</body>
+</html>

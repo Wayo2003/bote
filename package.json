@@ -1,0 +1,16 @@
+{
+  "name": "bote",
+  "version": "1.0.0",
+  "description": "Bote: the AI treasurer for every group. Collects with PayPal, pays the vendor, gives back the rest.",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": { "node": ">=20.6" },
+  "license": "MIT",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.1.0"
+  }
+}
