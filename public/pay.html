@@ -20,7 +20,8 @@
   .due .amt { font-size: 52px; font-weight: 900; letter-spacing: -.03em; }
   .lines div { display: flex; justify-content: space-between; font-size: 14.5px; padding: 8px 0; border-bottom: 1px dashed var(--line); }
   .lines div:last-child { border-bottom: 0; }
-  #buttons { margin-top: 20px; min-height: 50px; }
+  #buttons { margin-top: 20px; min-height: 50px; width: 100%; overflow: hidden; }
+  .box { overflow: hidden; }
   .done { text-align: center; padding: 24px 6px; }
   .done .tick { width: 76px; height: 76px; border-radius: 50%; background: var(--brand-soft); color: var(--brand-d); display: grid; place-items: center; font-size: 40px; margin: 0 auto 12px; animation: pop .4s ease; }
   @keyframes pop { from { transform: scale(.4); opacity: 0; } }

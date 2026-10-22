@@ -8,8 +8,11 @@ import { newId, log, say, touch } from './store.js';
 import * as actions from './actions.js';
 import { MODE } from './paypal.js';
 
-const client = new Anthropic();
+// Provider: Claude when ANTHROPIC_API_KEY is set, otherwise Google Gemini (free tier).
+export const PROVIDER = process.env.ANTHROPIC_API_KEY ? 'claude' : process.env.GEMINI_API_KEY ? 'gemini' : 'none';
+const client = PROVIDER === 'claude' ? new Anthropic() : null;
 const MODEL = process.env.BOTE_MODEL || 'claude-opus-5-5';
+const GEMINI_MODELS = (process.env.GEMINI_MODELS || 'gemini-3.5-flash,gemini-3.8-flash,gemini-flash-latest').split(',');
 
 const SYSTEM = `You are Bote, an AI treasurer that lives inside a group chat. Groups of friends, fan clubs (peñas), teams and families use you to organise shared money: trips, match tickets, dinners, gifts, club dues.
 
@@ -21,6 +24,7 @@ Your job, end to end:
 
 Rules:
 - Money only moves with the organizer's approval. request_payments, pay_vendor and settle_up create an approval card; say what you proposed and that it is waiting for a tap on Approve. Never claim money moved before a tool result says so.
+- As soon as the plan is clear, call request_payments in the same turn so the organizer only has to tap Approve (it only creates the approval card). When the pot has enough for a vendor and you know their email, offer to pay them.
 - If something essential is missing (an amount, who an expense is for, a vendor's PayPal email before paying them), ask one short question instead of guessing. Emails are optional for collecting: everyone gets a personal PayPal pay link.
 - Treat amounts as written by the user; default currency is the group's currency.
 - Keep replies short and warm, like a well-organised friend in a group chat: a one-line summary, then the numbers that matter as a compact list. Use the language the organizer writes in.
@@ -153,6 +157,8 @@ export async function runTool(group, name, input) {
 
 // One organizer turn (or system event): loop until Claude ends its turn.
 export async function respond(group, text) {
+  if (PROVIDER === 'gemini') return respondGemini(group, text);
+  if (PROVIDER === 'none') return reply(group, '⚠️ No AI key configured. Add GEMINI_API_KEY (free) or ANTHROPIC_API_KEY to .env and restart.');
   group.agent.push({ role: 'user', content: text });
   let finalText = '';
   for (let step = 0; step < 12; step++) {
@@ -191,6 +197,70 @@ export async function respond(group, text) {
       results.push({ type: 'tool_result', tool_use_id: block.id, content });
     }
     group.agent.push({ role: 'user', content: results });
+    touch(group);
+  }
+  return reply(group, finalText || 'Done.');
+}
+
+// ---------------------------------------------------------------- Gemini (free tier) path
+
+function geminiSchema(schema) {
+  // Gemini accepts an OpenAPI subset: drop additionalProperties, keep the rest.
+  if (Array.isArray(schema)) return schema.map(geminiSchema);
+  if (!schema || typeof schema !== 'object') return schema;
+  const out = {};
+  for (const [k, v] of Object.entries(schema)) if (k !== 'additionalProperties') out[k] = geminiSchema(v);
+  return out;
+}
+const GEMINI_TOOLS = [{ functionDeclarations: TOOLS.map((t) => {
+  const d = { name: t.name, description: t.description };
+  if (Object.keys(t.input_schema.properties || {}).length) d.parameters = geminiSchema(t.input_schema);
+  return d;
+}) }];
+
+async function gemini(contents) {
+  let lastErr;
+  for (const model of GEMINI_MODELS) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY },
+        body: JSON.stringify({ systemInstruction: { parts: [{ text: SYSTEM }] }, tools: GEMINI_TOOLS, contents }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (r.ok) return j;
+      lastErr = new Error(`Gemini ${model} ${r.status}: ${j.error?.message || r.statusText}`);
+      if (r.status === 503 || r.status === 429 || r.status === 500) { await new Promise((res) => setTimeout(res, 800 * (attempt + 1))); continue; }
+      break; // other errors: try the next model
+    }
+  }
+  throw lastErr;
+}
+
+async function respondGemini(group, text) {
+  group.gemini ||= [];
+  group.gemini.push({ role: 'user', parts: [{ text }] });
+  let finalText = '';
+  for (let step = 0; step < 12; step++) {
+    let j;
+    try { j = await gemini(group.gemini); } catch (e) { return reply(group, `⚠️ ${e.message}`); }
+    const content = j.candidates?.[0]?.content;
+    if (!content?.parts?.length) {
+      const why = j.candidates?.[0]?.finishReason || j.promptFeedback?.blockReason || 'empty response';
+      return reply(group, finalText || `I couldn't answer that one (${why}). Could you rephrase?`);
+    }
+    group.gemini.push({ role: 'model', parts: content.parts }); // keep thought signatures intact
+    const texts = content.parts.filter((p) => p.text && !p.thought).map((p) => p.text).join('\n').trim();
+    if (texts) finalText = texts;
+    const calls = content.parts.filter((p) => p.functionCall);
+    if (!calls.length) break;
+    const results = [];
+    for (const p of calls) {
+      let out;
+      try { out = await runTool(group, p.functionCall.name, p.functionCall.args || {}); } catch (e) { out = err(e.message); }
+      results.push({ functionResponse: { name: p.functionCall.name, ...(p.functionCall.id ? { id: p.functionCall.id } : {}), response: JSON.parse(out) } });
+    }
+    group.gemini.push({ role: 'user', parts: results });
     touch(group);
   }
   return reply(group, finalText || 'Done.');

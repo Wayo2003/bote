@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import * as store from './src/store.js';
 import * as paypal from './src/paypal.js';
 import * as actions from './src/actions.js';
-import { respond } from './src/agent.js';
+import { respond, PROVIDER } from './src/agent.js';
 import { potSummary, describe, balances, fromCents } from './src/ledger.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -55,7 +55,7 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
   const parts = url.pathname.split('/').filter(Boolean);
   try {
-    if (url.pathname === '/api/config') return send(res, 200, { mode: paypal.MODE, clientId: paypal.CLIENT_ID, ai: !!process.env.ANTHROPIC_API_KEY });
+    if (url.pathname === '/api/config') return send(res, 200, { mode: paypal.MODE, clientId: paypal.CLIENT_ID, ai: PROVIDER });
 
     if (url.pathname === '/api/groups' && req.method === 'POST') {
       const b = await readBody(req);
@@ -150,4 +150,4 @@ const server = http.createServer(async (req, res) => {
   fs.readFile(full, (e, buf) => (e ? send(res, 404, 'Not found', 'text/plain') : send(res, 200, buf, TYPES[path.extname(full)] || 'application/octet-stream')));
 });
 
-server.listen(PORT, () => console.log(`Bote on http://localhost:${PORT} · PayPal: ${paypal.MODE} · AI: ${process.env.ANTHROPIC_API_KEY ? 'on' : 'missing key'}`));
+server.listen(PORT, () => console.log(`Bote on http://localhost:${PORT} · PayPal: ${paypal.MODE} · AI: ${PROVIDER}`));
