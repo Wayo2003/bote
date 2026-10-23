@@ -25,7 +25,7 @@ You tell it the plan in your own words, for example *"We're 6 going to the derby
 
 ## How it uses AI
 
-Bote is a Claude agent (`claude-opus-5-5`, adaptive thinking) with 11 tools (`src/agent.js`):
+Bote is an LLM agent with 11 tools (`src/agent.js`). It runs on **Google Gemini** (`gemini-3.5-flash`, free tier) by default, or on **Anthropic Claude** (`claude-opus-5-5`) when `ANTHROPIC_API_KEY` is set. Both providers share the same tools and system prompt:
 
 - **Ledger tools:** `get_group`, `add_members`, `remove_member`, `add_expense`, `update_expense`, `remove_expense`
 - **PayPal tools:** `request_payments`, `check_payments`, `send_reminder`, `pay_vendor`, `settle_up`
@@ -35,7 +35,11 @@ Design choices that make it trustworthy with money:
 - **The model never does arithmetic.** It decides *what* the plan is; `src/ledger.js` computes every share in integer cents, splitting remainders deterministically.
 - **Human in the loop.** `request_payments`, `pay_vendor` and `settle_up` only create an approval card with the exact amounts. Nothing reaches PayPal until the organizer approves.
 - **Event-driven.** Payments, approvals and failures are fed back to the agent as `[event]` messages, so it reacts in the group chat ("Pedro just paid, 2 to go: shall I remind Omar?").
-- **Server-side refusal fallback** is enabled (`fallbacks: "default"`), and errors surface as friendly chat messages.
+- **Resilient.** It uses a model fallback chain on Gemini (overload and rate-limit retries) and server-side refusal fallback on Claude; errors surface as friendly chat messages.
+
+## Try it live
+
+**https://bote-yz5m.onrender.com** runs on the PayPal sandbox, so no real money moves. Create a pot, paste a suggested plan, approve, then open a member's pay link and pay with a PayPal sandbox personal account.
 
 ## Run it
 
@@ -47,7 +51,7 @@ cp .env.example .env   # add your keys
 npm start              # http://localhost:3500
 ```
 
-- `ANTHROPIC_API_KEY`: needed for the agent.
+- `GEMINI_API_KEY`: free key from Google AI Studio. Alternatively, set `ANTHROPIC_API_KEY` to use Claude.
 - `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET`: a **sandbox** app from developer.paypal.com. Without them Bote runs in **demo mode**, with simulated PayPal calls so you can try the whole flow.
 - `PUBLIC_URL`: optional; the base URL used in members' pay links.
 
