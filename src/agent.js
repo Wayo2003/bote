@@ -12,7 +12,7 @@ import { MODE } from './paypal.js';
 export const PROVIDER = process.env.ANTHROPIC_API_KEY ? 'claude' : process.env.GEMINI_API_KEY ? 'gemini' : 'none';
 const client = PROVIDER === 'claude' ? new Anthropic() : null;
 const MODEL = process.env.BOTE_MODEL || 'claude-opus-5-5';
-const GEMINI_MODELS = (process.env.GEMINI_MODELS || 'gemini-3.5-flash,gemini-3.8-flash,gemini-flash-latest').split(',');
+const GEMINI_MODELS = (process.env.GEMINI_MODELS || 'gemini-3.5-flash,gemini-3.5-flash-lite,gemini-3.8-flash,gemini-flash-latest,gemini-3.7-flash,gemini-3.6-flash,gemini-3.1-flash-lite').split(',');
 
 const SYSTEM = `You are Bote, an AI treasurer that lives inside a group chat. Groups of friends, fan clubs (peñas), teams and families use you to organise shared money: trips, match tickets, dinners, gifts, club dues.
 
@@ -221,7 +221,7 @@ const GEMINI_TOOLS = [{ functionDeclarations: TOOLS.map((t) => {
 async function gemini(contents) {
   let lastErr;
   for (const model of GEMINI_MODELS) {
-    for (let attempt = 0; attempt < 3; attempt++) {
+    for (let attempt = 0; attempt < 2; attempt++) {
       const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY },
@@ -230,7 +230,7 @@ async function gemini(contents) {
       const j = await r.json().catch(() => ({}));
       if (r.ok) return j;
       lastErr = new Error(`Gemini ${model} ${r.status}: ${j.error?.message || r.statusText}`);
-      if (r.status === 503 || r.status === 429 || r.status === 500) { await new Promise((res) => setTimeout(res, 800 * (attempt + 1))); continue; }
+      if (r.status === 503 || r.status === 429 || r.status === 500) { await new Promise((res) => setTimeout(res, 600 * (attempt + 1))); continue; }
       break; // other errors: try the next model
     }
   }
