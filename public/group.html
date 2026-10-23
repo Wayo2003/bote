@@ -124,7 +124,8 @@ function md(text) {
 function renderChat() {
   const items = [
     ...G.chat.map((c) => ({ at: c.at, kind: 'chat', c })),
-    ...G.actions.map((a) => ({ at: a.at + 1, kind: 'action', a })),
+    // Show each approval card right after Bote's reply in the turn that created it.
+    ...G.actions.map((a) => { const r = G.chat.find((c) => c.role === 'bote' && c.at >= a.at); return { at: (r ? r.at : a.at) + 1, kind: 'action', a }; }),
   ].sort((x, y) => x.at - y.at);
   const box = $('msgs');
   const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
