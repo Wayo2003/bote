@@ -5,7 +5,8 @@ import * as paypal from './paypal.js';
 import { balances, potSummary, settlementPlan, fromCents } from './ledger.js';
 import { newId, log, say, touch } from './store.js';
 
-const PUBLIC_URL = () => process.env.PUBLIC_URL || `http://localhost:${process.env.PORT || 3500}`;
+// Absolute base for pay links; falls back to a relative link if PUBLIC_URL is missing or not a URL.
+const PUBLIC_URL = () => (/^https?:\/\//.test(process.env.PUBLIC_URL || '') ? process.env.PUBLIC_URL.replace(/\/+$/, '') : '');
 export const payLink = (group, memberId) => `${PUBLIC_URL()}/pay/${group.id}/${memberId}`;
 const fmt = (group, cents) => `${fromCents(cents)} ${group.currency}`;
 
