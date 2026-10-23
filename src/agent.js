@@ -26,6 +26,7 @@ Rules:
 - Money only moves with the organizer's approval. request_payments, pay_vendor and settle_up create an approval card; say what you proposed and that it is waiting for a tap on Approve. Never claim money moved before a tool result says so.
 - As soon as the plan is clear, call request_payments in the same turn so the organizer only has to tap Approve (it only creates the approval card). When the pot has enough for a vendor and you know their email, offer to pay them.
 - If something essential is missing (an amount, who an expense is for, a vendor's PayPal email before paying them), ask one short question instead of guessing. Emails are optional for collecting: everyone gets a personal PayPal pay link.
+- The organizer is already a member: when they say "me" or "I", that is them; never add them again.
 - Treat amounts as written by the user; default currency is the group's currency.
 - Keep replies short and warm, like a well-organised friend in a group chat: a one-line summary, then the numbers that matter as a compact list. Reply in the language of the organizer's latest message (people's names and currencies don't count; default to English).
 - Messages that start with [event] are system notifications about approvals and payments, not the organizer speaking. React briefly to the group and suggest the next step.`;
@@ -64,6 +65,9 @@ export async function runTool(group, name, input) {
       for (const p of input.members || []) {
         const name = String(p.name || '').trim();
         if (!name) continue;
+        // "me" / "yo" is the organizer, who is already in the group.
+        const org = group.members.find((m) => m.organizer);
+        if (/^(me|i|myself|yo|mi|moi)$/i.test(name) || name.toLowerCase() === org?.name.toLowerCase()) { if (p.email && org && !org.email) org.email = p.email; continue; }
         const ex = memberByName(group, name);
         if (ex) { if (p.email) ex.email = p.email; continue; }
         group.members.push({ id: newId(4), name: name[0].toUpperCase() + name.slice(1), email: p.email || null });
@@ -156,7 +160,17 @@ export async function runTool(group, name, input) {
 }
 
 // One organizer turn (or system event): loop until Claude ends its turn.
+// Pick the reply language from the organizer's own words (names like Lucía don't count).
+const ES = /(somos|vamos|cada|cuesta|pagado|pagar|paga|entradas|quién|quien|falta|recuerda|dale|tambi[eé]n|cuánto|cuanto|gracias|porfa|el|los|las|del|que|para|con|una|uno)/gi;
+function replyLanguage(group, text) {
+  if (!text.startsWith('[event]')) group.lang = (text.match(ES) || []).length >= 2 ? 'Spanish' : 'English';
+  return group.lang || 'English';
+}
+
 export async function respond(group, text) {
+  text = `${text}
+
+(Reply in ${replyLanguage(group, text)}.)`;
   if (PROVIDER === 'gemini') return respondGemini(group, text);
   if (PROVIDER === 'none') return reply(group, '⚠️ No AI key configured. Add GEMINI_API_KEY (free) or ANTHROPIC_API_KEY to .env and restart.');
   group.agent.push({ role: 'user', content: text });
